@@ -13,7 +13,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 # Fungsi untuk membaca data agar tidak error jika sheet kosong
 def get_data(worksheet, columns):
-    df = conn.read(worksheet=worksheet, ttl=600).dropna(how="all")
+    df = conn.read(worksheet=worksheet, ttl=0).dropna(how="all")
     if df.empty or len(df.columns) == 0:
         return pd.DataFrame(columns=columns)
     return df
