@@ -5,15 +5,15 @@ from datetime import datetime
 st.set_page_config(page_title="BRK Inventory Management", layout="wide")
 
 st.title("📦 BRK Inventory Management (Cloud System)")
-st.markdown("Sistem alternatif sederhana untuk mencatat mutasi fisik (*barcode*), pengelolaan WIP penjahit, dan penguncian HPP riil tanpa modul produksi otomatis.")
+st.markdown("Sistem alternatif sederhana untuk mencatat mutasi fisik (*barcode*), pengelolaan WIP penjahit, dan penguncian HPP riil.")
 
-# Inisialisasi Database Sederhana di Session State (Simulasi Cloud Database)
+# Inisialisasi Database Sederhana di Session State
 if 'stok_kain' not in st.session_state:
-    st.session_state.stok_kain = pd.DataFrame(columns=['Tanggal', 'Barcode', 'Nama_Kain', 'Jumlah_Meter', 'Supplier'])
+    st.session_state.stok_kain = pd.DataFrame(columns=['Tanggal', 'Barcode', 'Nama_Kain', 'Jumlah_Potong', 'Harga_Beli (Rp)', 'Supplier'])
 if 'wip_penjahit' not in st.session_state:
-    st.session_state.wip_penjahit = pd.DataFrame(columns=['Tanggal', 'Barcode', 'Nama_Barang', 'Penjahit', 'Jumlah_Kain_Keluar'])
+    st.session_state.wip_penjahit = pd.DataFrame(columns=['Tanggal', 'Barcode', 'Nama_Barang', 'Penjahit', 'Jumlah_Potong_Keluar'])
 if 'baju_jadi' not in st.session_state:
-    st.session_state.baju_jadi = pd.DataFrame(columns=['Tanggal', 'Barcode_Baju', 'Nama_Baju', 'Harga_Kain', 'Ongkos_Jahit', 'Total_Modal_HPP'])
+    st.session_state.baju_jadi = pd.DataFrame(columns=['Tanggal', 'Barcode_Baju', 'Nama_Baju', 'Modal_Kain', 'Ongkos_Jahit', 'Total_HPP'])
 
 # Sidebar Menu Navigasi
 menu = st.sidebar.selectbox("Pilih Menu Operasional", [
@@ -33,18 +33,19 @@ if menu == "1. Stok Masuk (Kain)":
             barcode = st.text_input("Scan / Masukkan Barcode Kain")
             nama_kain = st.text_input("Nama / Jenis Kain")
         with col2:
-            jumlah = st.number_input("Jumlah (Meter)", min_value=1.0, step=1.0)
+            jumlah_potong = st.number_input("Jumlah (Potong)", min_value=1, step=1)
+            harga_beli = st.number_input("Harga Beli Total / Per Unit (Rp)", min_value=0.0, step=1000.0)
             supplier = st.text_input("Nama Supplier")
         
         submitted = st.form_submit_button("Simpan Stok Kain")
         if submitted and barcode:
-            data_baru = pd.DataFrame([[tanggal, barcode, nama_kain, jumlah, supplier]], 
-                                     columns=['Tanggal', 'Barcode', 'Nama_Kain', 'Jumlah_Meter', 'Supplier'])
+            data_baru = pd.DataFrame([[tanggal, barcode, nama_kain, jumlah_potong, harga_beli, supplier]], 
+                                     columns=['Tanggal', 'Barcode', 'Nama_Kain', 'Jumlah_Potong', 'Harga_Beli (Rp)', 'Supplier'])
             st.session_state.stok_kain = pd.concat([st.session_state.stok_kain, data_baru], ignore_index=True)
-            st.success("Stok kain berhasil dicatat!")
+            st.success("Stok kain dan harga beli berhasil dicatat!")
 
     st.subheader("Daftar Kain di Gudang")
-    st.dataframe(st.session_state.stok_kain, use_container_width=True)
+    st.dataframe(st.session_state.stok_kain, width='stretch')
 
 # --- MENU 2: KIRIM KE PENJAHIT ---
 elif menu == "2. Kirim ke Penjahit (WIP)":
@@ -57,22 +58,22 @@ elif menu == "2. Kirim ke Penjahit (WIP)":
             nama_barang = st.text_input("Deskripsi / Model Rencana Baju")
         with col2:
             penjahit = st.text_input("Nama Vendor Penjahit")
-            jumlah_keluar = st.number_input("Jumlah Kain Diberikan (Meter)", min_value=1.0, step=1.0)
+            jumlah_keluar = st.number_input("Jumlah Kain Diberikan (Potong)", min_value=1, step=1)
             
         submitted = st.form_submit_button("Kirim ke Penjahit")
         if submitted and barcode:
             data_wip = pd.DataFrame([[tanggal, barcode, nama_barang, penjahit, jumlah_keluar]], 
-                                    columns=['Tanggal', 'Barcode', 'Nama_Barang', 'Penjahit', 'Jumlah_Kain_Keluar'])
+                                    columns=['Tanggal', 'Barcode', 'Nama_Barang', 'Penjahit', 'Jumlah_Potong_Keluar'])
             st.session_state.wip_penjahit = pd.concat([st.session_state.wip_penjahit, data_wip], ignore_index=True)
             st.success("Mutasi ke penjahit berhasil dicatat (Tanpa HPP Prematur)!")
 
     st.subheader("Daftar Barang dalam Proses (WIP di Penjahit)")
-    st.dataframe(st.session_state.wip_penjahit, use_container_width=True)
+    st.dataframe(st.session_state.wip_penjahit, width='stretch')
 
 # --- MENU 3: TERIMA BAJU JADI & KUNCI HPP ---
 elif menu == "3. Terima Baju Jadi (Input HPP)":
     st.header("✨ Terima Baju Jadi & Kunci Harga Modal (HPP)")
-    st.info("Catatan: HPP dihitung manual dari akumulasi (Harga Kain + Ongkos Jahit) sebelum masuk ke stok toko.")
+    st.info("HPP final dihitung dari akumulasi Modal Kain + Ongkos Jahit sebelum masuk ke stok toko.")
     
     with st.form("form_baju"):
         col1, col2 = st.columns(2)
@@ -81,32 +82,31 @@ elif menu == "3. Terima Baju Jadi (Input HPP)":
             barcode_baju = st.text_input("Scan Barcode Baju Jadi Baru")
             nama_baju = st.text_input("Nama Produk Baju Jadi")
         with col2:
-            harga_kain = st.number_input("Estimasi Biaya Kain Terpakai (Rp)", min_value=0.0, step=500.0)
+            modal_kain = st.number_input("Nilai Modal Kain Terpakai (Rp)", min_value=0.0, step=500.0)
             ongkos_jahit = st.number_input("Biaya Ongkos Jahit (Rp)", min_value=0.0, step=500.0)
             
-        total_hpp = harga_kain + ongkos_jahit
-        st.markdown(f"### **Total Modal (HPP Per Unit): Rp {total_hpp:,.2f}**")
+        total_hpp = modal_kain + ongkos_jahit
+        st.markdown(f"### **Total Modal HPP Final: Rp {total_hpp:,.2f}**")
         
         submitted = st.form_submit_button("Simpan ke Stok Barang Jadi")
         if submitted and barcode_baju:
-            data_baju = pd.DataFrame([[tanggal, barcode_baju, nama_baju, harga_kain, ongkos_jahit, total_hpp]], 
-                                     columns=['Tanggal', 'Barcode_Baju', 'Nama_Baju', 'Harga_Kain', 'Ongkos_Jahit', 'Total_Modal_HPP'])
+            data_baju = pd.DataFrame([[tanggal, barcode_baju, nama_baju, modal_kain, ongkos_jahit, total_hpp]], 
+                                     columns=['Tanggal', 'Barcode_Baju', 'Nama_Baju', 'Modal_Kain', 'Ongkos_Jahit', 'Total_HPP'])
             st.session_state.baju_jadi = pd.concat([st.session_state.baju_jadi, data_baju], ignore_index=True)
             st.success("Baju jadi berhasil dimasukkan ke sistem dengan HPP terkunci!")
 
     st.subheader("Datalog Master Baju Jadi & HPP")
-    st.dataframe(st.session_state.baju_jadi, use_container_width=True)
+    st.dataframe(st.session_state.baju_jadi, width='stretch')
 
 # --- MENU 4: LAPORAN STOK & HPP ---
 elif menu == "4. Laporan Stok & HPP":
     st.header("📊 Laporan Pusat (Siap Rekap ke Jurnal.id)")
-    st.markdown("Data ringkas di bawah ini yang nantinya ditarik oleh tim keuangan di akhir bulan.")
     
     st.subheader("1. Rekapitulasi Bahan Baku")
-    st.dataframe(st.session_state.stok_kain, use_container_width=True)
+    st.dataframe(st.session_state.stok_kain, width='stretch')
     
     st.subheader("2. Rekapitulasi Barang Dalam Proses (WIP)")
-    st.dataframe(st.session_state.wip_penjahit, use_container_width=True)
+    st.dataframe(st.session_state.wip_penjahit, width='stretch')
     
     st.subheader("3. Rekapitulasi Barang Jadi & Struktur HPP")
-    st.dataframe(st.session_state.baju_jadi, use_container_width=True)
+    st.dataframe(st.session_state.baju_jadi, width='stretch')
