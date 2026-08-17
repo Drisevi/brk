@@ -7,9 +7,9 @@ st.set_page_config(page_title="BRK Inventory Management", layout="wide")
 st.title("📦 BRK Inventory Management (Cloud System)")
 st.markdown("Sistem alternatif sederhana untuk mencatat mutasi fisik (*barcode*), pengelolaan WIP penjahit, dan penguncian HPP riil.")
 
-# Inisialisasi Database Sederhana di Session State
+# Inisialisasi Database Sederhana di Session State (Simulasi Cloud Database)
 if 'stok_kain' not in st.session_state:
-    st.session_state.stok_kain = pd.DataFrame(columns=['Tanggal', 'Barcode', 'Nama_Kain', 'Jumlah_Potong', 'Harga_Beli (Rp)', 'Supplier'])
+    st.session_state.stok_kain = pd.DataFrame(columns=['Tanggal', 'Barcode', 'Nama_Kain', 'Jumlah_Potong', 'Harga_Beli_Rp', 'Supplier'])
 if 'wip_penjahit' not in st.session_state:
     st.session_state.wip_penjahit = pd.DataFrame(columns=['Tanggal', 'Barcode', 'Nama_Barang', 'Penjahit', 'Jumlah_Potong_Keluar'])
 if 'baju_jadi' not in st.session_state:
@@ -33,14 +33,14 @@ if menu == "1. Stok Masuk (Kain)":
             barcode = st.text_input("Scan / Masukkan Barcode Kain")
             nama_kain = st.text_input("Nama / Jenis Kain")
         with col2:
-            jumlah_potong = st.number_input("Jumlah (Potong)", min_value=1, step=1)
-            harga_beli = st.number_input("Harga Beli Total / Per Unit (Rp)", min_value=0.0, step=1000.0)
+            jumlah_potong = st.number_input("Jumlah (Potong/Pcs)", min_value=1, step=1)
+            harga_beli = st.number_input("Harga Beli Total (Rp)", min_value=0.0, step=1000.0)
             supplier = st.text_input("Nama Supplier")
         
         submitted = st.form_submit_button("Simpan Stok Kain")
         if submitted and barcode:
             data_baru = pd.DataFrame([[tanggal, barcode, nama_kain, jumlah_potong, harga_beli, supplier]], 
-                                     columns=['Tanggal', 'Barcode', 'Nama_Kain', 'Jumlah_Potong', 'Harga_Beli (Rp)', 'Supplier'])
+                                     columns=['Tanggal', 'Barcode', 'Nama_Kain', 'Jumlah_Potong', 'Harga_Beli_Rp', 'Supplier'])
             st.session_state.stok_kain = pd.concat([st.session_state.stok_kain, data_baru], ignore_index=True)
             st.success("Stok kain dan harga beli berhasil dicatat!")
 
@@ -58,7 +58,7 @@ elif menu == "2. Kirim ke Penjahit (WIP)":
             nama_barang = st.text_input("Deskripsi / Model Rencana Baju")
         with col2:
             penjahit = st.text_input("Nama Vendor Penjahit")
-            jumlah_keluar = st.number_input("Jumlah Kain Diberikan (Potong)", min_value=1, step=1)
+            jumlah_keluar = st.number_input("Jumlah Kain Diberikan (Potong/Pcs)", min_value=1, step=1)
             
         submitted = st.form_submit_button("Kirim ke Penjahit")
         if submitted and barcode:
@@ -101,25 +101,13 @@ elif menu == "3. Terima Baju Jadi (Input HPP)":
 # --- MENU 4: LAPORAN STOK & HPP ---
 elif menu == "4. Laporan Stok & HPP":
     st.header("📊 Laporan Pusat (Siap Rekap ke Jurnal.id)")
-    
-    st.subheader("1. Rekapitulasi Bahan Baku")
-    st.dataframe(st.session_state.stok_kain, width='stretch')
-    
-    st.subheader("2. Rekapitulasi Barang Dalam Proses (WIP)")
-    st.dataframe(st.session_state.wip_penjahit, width='stretch')
-    
-    st.subheader("3. Rekapitulasi Barang Jadi & Struktur HPP")
-    st.dataframe(st.session_state.baju_jadi, width='stretch')
-
-# --- MENU 4: LAPORAN STOK & HPP ---
-elif menu == "4. Laporan Stok & HPP":
-    st.header("📊 Laporan Pusat (Siap Rekap ke Jurnal.id)")
     st.markdown("Unduh data rekapitulasi operasional di bawah ini untuk dilaporkan atau disinkronkan.")
     
     # Fungsi bantu untuk convert DataFrame ke CSV (bisa dibuka langsung di Excel)
     def convert_df_to_csv(df):
         return df.to_csv(index=False).encode('utf-8')
 
+    # 1. Bagian Bahan Baku
     st.subheader("1. Rekapitulasi Bahan Baku")
     st.dataframe(st.session_state.stok_kain, width='stretch')
     if not st.session_state.stok_kain.empty:
@@ -132,6 +120,8 @@ elif menu == "4. Laporan Stok & HPP":
         )
     
     st.markdown("---")
+    
+    # 2. Bagian WIP Penjahit
     st.subheader("2. Rekapitulasi Barang Dalam Proses (WIP)")
     st.dataframe(st.session_state.wip_penjahit, width='stretch')
     if not st.session_state.wip_penjahit.empty:
@@ -144,6 +134,8 @@ elif menu == "4. Laporan Stok & HPP":
         )
     
     st.markdown("---")
+    
+    # 3. Bagian Baju Jadi & HPP
     st.subheader("3. Rekapitulasi Barang Jadi & Struktur HPP")
     st.dataframe(st.session_state.baju_jadi, width='stretch')
     if not st.session_state.baju_jadi.empty:
