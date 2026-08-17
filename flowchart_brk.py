@@ -110,3 +110,47 @@ elif menu == "4. Laporan Stok & HPP":
     
     st.subheader("3. Rekapitulasi Barang Jadi & Struktur HPP")
     st.dataframe(st.session_state.baju_jadi, width='stretch')
+
+# --- MENU 4: LAPORAN STOK & HPP ---
+elif menu == "4. Laporan Stok & HPP":
+    st.header("📊 Laporan Pusat (Siap Rekap ke Jurnal.id)")
+    st.markdown("Unduh data rekapitulasi operasional di bawah ini untuk dilaporkan atau disinkronkan.")
+    
+    # Fungsi bantu untuk convert DataFrame ke CSV (bisa dibuka langsung di Excel)
+    def convert_df_to_csv(df):
+        return df.to_csv(index=False).encode('utf-8')
+
+    st.subheader("1. Rekapitulasi Bahan Baku")
+    st.dataframe(st.session_state.stok_kain, width='stretch')
+    if not st.session_state.stok_kain.empty:
+        csv_kain = convert_df_to_csv(st.session_state.stok_kain)
+        st.download_button(
+            label="📥 Download Rekap Kain (CSV/Excel)",
+            data=csv_kain,
+            file_name='rekap_stok_kain.csv',
+            mime='text/csv',
+        )
+    
+    st.markdown("---")
+    st.subheader("2. Rekapitulasi Barang Dalam Proses (WIP)")
+    st.dataframe(st.session_state.wip_penjahit, width='stretch')
+    if not st.session_state.wip_penjahit.empty:
+        csv_wip = convert_df_to_csv(st.session_state.wip_penjahit)
+        st.download_button(
+            label="📥 Download Rekap WIP Penjahit (CSV/Excel)",
+            data=csv_wip,
+            file_name='rekap_wip_penjahit.csv',
+            mime='text/csv',
+        )
+    
+    st.markdown("---")
+    st.subheader("3. Rekapitulasi Barang Jadi & Struktur HPP")
+    st.dataframe(st.session_state.baju_jadi, width='stretch')
+    if not st.session_state.baju_jadi.empty:
+        csv_baju = convert_df_to_csv(st.session_state.baju_jadi)
+        st.download_button(
+            label="📥 Download Rekap Baju Jadi & HPP (CSV/Excel)",
+            data=csv_baju,
+            file_name='rekap_baju_jadi_hpp.csv',
+            mime='text/csv',
+        )
