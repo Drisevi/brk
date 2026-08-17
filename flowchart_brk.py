@@ -191,6 +191,50 @@ elif menu == "5. Laporan & Sisa Stok":
     else:
         sisa_baju = pd.DataFrame(columns=['Barcode_Baju', 'Nama_Baju', 'Jumlah_Baju', 'Jumlah_Terjual', 'Sisa_Gudang (Pcs)'])
 
+    # Membuat 4 Tab Laporan
+    tab1, tab2, tab3, tab4 = st.tabs(["📈 Laporan Keuntungan", "📦 Sisa Stok Saat Ini", "📝 Rekap Bahan & WIP", "💰 Rekap Baju & Penjualan"])
+    
+    with tab1:
+        st.subheader("Ringkasan Keuntungan (Laba Kotor)")
+        
+        total_omzet = df_jual['Harga_Jual_Total'].astype(float).sum() if 'Harga_Jual_Total' in df_jual.columns and not df_jual.empty else 0.0
+        total_hpp_terjual = df_jual['Total_HPP_Terjual'].astype(float).sum() if 'Total_HPP_Terjual' in df_jual.columns and not df_jual.empty else 0.0
+        total_laba_kotor = df_jual['Laba_Kotor'].astype(float).sum() if 'Laba_Kotor' in df_jual.columns and not df_jual.empty else 0.0
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("💰 Total Omzet Penjualan", f"Rp {total_omzet:,.0f}")
+        col2.metric("📉 Total Modal (HPP Keluar)", f"Rp {total_hpp_terjual:,.0f}")
+        col3.metric("📈 TOTAL LABA KOTOR", f"Rp {total_laba_kotor:,.0f}")
+        
+        st.info("💡 **Catatan untuk Finance/Akuntansi:** Angka Laba Kotor di atas adalah hasil pengurangan Omzet dengan HPP. Angka ini belum dikurangi dengan Biaya Operasional (gaji, listrik, sewa, dll) untuk menjadi Laba Bersih.")
+
+    with tab2:
+        st.subheader("Sisa Bahan Baku (Kain)")
+        st.dataframe(sisa_kain[['Barcode_Kain', 'Nama_Kain', 'Sisa_Gudang (Potong)']] if not sisa_kain.empty else sisa_kain, use_container_width=True)
+        st.subheader("Sisa Barang Jadi (Siap Jual)")
+        st.dataframe(sisa_baju[['Barcode_Baju', 'Nama_Baju', 'Sisa_Gudang (Pcs)']] if not sisa_baju.empty else sisa_baju, use_container_width=True)
+
+    def convert_df_to_csv(df):
+        return df.to_csv(index=False).encode('utf-8')
+
+    with tab3:
+        st.dataframe(df_kain, use_container_width=True)
+        if not df_kain.empty:
+            st.download_button("📥 Download Log Kain", data=convert_df_to_csv(df_kain), file_name='log_kain.csv', mime='text/csv')
+        st.write("---")
+        st.dataframe(df_wip, use_container_width=True)
+        if not df_wip.empty:
+            st.download_button("📥 Download Log WIP", data=convert_df_to_csv(df_wip), file_name='log_wip.csv', mime='text/csv')
+
+    with tab4:
+        st.dataframe(df_baju, use_container_width=True)
+        if not df_baju.empty:
+            st.download_button("📥 Download Log Baju Jadi", data=convert_df_to_csv(df_baju), file_name='log_baju.csv', mime='text/csv')
+        st.write("---")
+        st.dataframe(df_jual, use_container_width=True)
+        if not df_jual.empty:
+            st.download_button("📥 Download Log Penjualan", data=convert_df_to_csv(df_jual), file_name='log_penjualan.csv', mime='text/csv')
+
 # --- MENU 6: ADMIN (HAPUS DATA & SANDI) ---
 elif menu == "6. Admin (Hapus Data & Sandi)":
     st.header("🛠️ Panel Admin Integra")
