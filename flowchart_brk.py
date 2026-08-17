@@ -157,65 +157,39 @@ elif menu == "4. Kasir (Penjualan / Keluar)":
 elif menu == "5. Laporan & Sisa Stok":
     st.header("📊 Dashboard Laporan & Sisa Stok")
     
-    # Kalkulasi sisa kain
-    kain_masuk = df_kain.groupby(['Barcode_Kain', 'Nama_Kain'])['Jumlah_Potong'].sum().reset_index() if not df_kain.empty else pd.DataFrame(columns=['Barcode_Kain', 'Nama_Kain', 'Jumlah_Potong'])
-    kain_keluar = df_wip.groupby('Barcode_Kain')['Jumlah_Potong_Keluar'].sum().reset_index() if not df_wip.empty else pd.DataFrame(columns=['Barcode_Kain', 'Jumlah_Potong_Keluar'])
-    sisa_kain = pd.merge(kain_masuk, kain_keluar, on='Barcode_Kain', how='left').fillna(0)
-    if not sisa_kain.empty:
+    # 1. Kalkulasi Sisa Kain dengan pengamanan nama kolom
+    if not df_kain.empty and 'Barcode_Kain' in df_kain.columns:
+        kain_masuk = df_kain.groupby(['Barcode_Kain', 'Nama_Kain'])['Jumlah_Potong'].sum().reset_index()
+    else:
+        kain_masuk = pd.DataFrame(columns=['Barcode_Kain', 'Nama_Kain', 'Jumlah_Potong'])
+
+    if not df_wip.empty and 'Barcode_Kain' in df_wip.columns:
+        kain_keluar = df_wip.groupby('Barcode_Kain')['Jumlah_Potong_Keluar'].sum().reset_index()
+    else:
+        kain_keluar = pd.DataFrame(columns=['Barcode_Kain', 'Jumlah_Potong_Keluar'])
+
+    if not kain_masuk.empty:
+        sisa_kain = pd.merge(kain_masuk, kain_keluar, on='Barcode_Kain', how='left').fillna(0)
         sisa_kain['Sisa_Gudang (Potong)'] = sisa_kain['Jumlah_Potong'] - sisa_kain['Jumlah_Potong_Keluar']
-    
-    # Kalkulasi sisa baju jadi
-    baju_masuk = df_baju.groupby(['Barcode_Baju', 'Nama_Baju'])['Jumlah_Baju'].sum().reset_index() if not df_baju.empty else pd.DataFrame(columns=['Barcode_Baju', 'Nama_Baju', 'Jumlah_Baju'])
-    baju_keluar = df_jual.groupby('Barcode_Baju')['Jumlah_Terjual'].sum().reset_index() if not df_jual.empty else pd.DataFrame(columns=['Barcode_Baju', 'Jumlah_Terjual'])
-    sisa_baju = pd.merge(baju_masuk, baju_keluar, on='Barcode_Baju', how='left').fillna(0)
-    if not sisa_baju.empty:
+    else:
+        sisa_kain = pd.DataFrame(columns=['Barcode_Kain', 'Nama_Kain', 'Jumlah_Potong', 'Jumlah_Potong_Keluar', 'Sisa_Gudang (Potong)'])
+
+    # 2. Kalkulasi Sisa Baju Jadi dengan pengamanan nama kolom
+    if not df_baju.empty and 'Barcode_Baju' in df_baju.columns:
+        baju_masuk = df_baju.groupby(['Barcode_Baju', 'Nama_Baju'])['Jumlah_Baju'].sum().reset_index()
+    else:
+        baju_masuk = pd.DataFrame(columns=['Barcode_Baju', 'Nama_Baju', 'Jumlah_Baju'])
+
+    if not df_jual.empty and 'Barcode_Baju' in df_jual.columns:
+        baju_keluar = df_jual.groupby('Barcode_Baju')['Jumlah_Terjual'].sum().reset_index()
+    else:
+        baju_keluar = pd.DataFrame(columns=['Barcode_Baju', 'Jumlah_Terjual'])
+
+    if not baju_masuk.empty:
+        sisa_baju = pd.merge(baju_masuk, baju_keluar, on='Barcode_Baju', how='left').fillna(0)
         sisa_baju['Sisa_Gudang (Pcs)'] = sisa_baju['Jumlah_Baju'] - sisa_baju['Jumlah_Terjual']
-
-    # Membuat 4 Tab Laporan
-    tab1, tab2, tab3, tab4 = st.tabs(["📈 Laporan Keuntungan", "📦 Sisa Stok Saat Ini", "📝 Rekap Bahan & WIP", "💰 Rekap Baju & Penjualan"])
-    
-    with tab1:
-        st.subheader("Ringkasan Keuntungan (Laba Kotor)")
-        
-        # Kalkulasi Keuntungan dari data penjualan
-        total_omzet = df_jual['Harga_Jual_Total'].astype(float).sum() if not df_jual.empty else 0.0
-        total_hpp_terjual = df_jual['Total_HPP_Terjual'].astype(float).sum() if not df_jual.empty else 0.0
-        total_laba_kotor = df_jual['Laba_Kotor'].astype(float).sum() if not df_jual.empty else 0.0
-        
-        # Menampilkan metrik besar (Dashboard)
-        col1, col2, col3 = st.columns(3)
-        col1.metric("💰 Total Omzet Penjualan", f"Rp {total_omzet:,.0f}")
-        col2.metric("📉 Total Modal (HPP Keluar)", f"Rp {total_hpp_terjual:,.0f}")
-        col3.metric("📈 TOTAL LABA KOTOR", f"Rp {total_laba_kotor:,.0f}")
-        
-        st.info("💡 **Catatan untuk Finance/Akuntansi:** Angka Laba Kotor di atas adalah hasil pengurangan Omzet dengan HPP. Angka ini belum dikurangi dengan Biaya Operasional (gaji, listrik, sewa, dll) untuk menjadi Laba Bersih.")
-
-    with tab2:
-        st.subheader("Sisa Bahan Baku (Kain)")
-        st.dataframe(sisa_kain[['Barcode_Kain', 'Nama_Kain', 'Sisa_Gudang (Potong)']] if not sisa_kain.empty else sisa_kain, width='stretch')
-        st.subheader("Sisa Barang Jadi (Siap Jual)")
-        st.dataframe(sisa_baju[['Barcode_Baju', 'Nama_Baju', 'Sisa_Gudang (Pcs)']] if not sisa_baju.empty else sisa_baju, width='stretch')
-
-    def convert_df_to_csv(df):
-        return df.to_csv(index=False).encode('utf-8')
-
-    with tab3:
-        st.dataframe(df_kain, width='stretch')
-        if not df_kain.empty:
-            st.download_button("📥 Download Log Kain", data=convert_df_to_csv(df_kain), file_name='log_kain.csv', mime='text/csv')
-        st.write("---")
-        st.dataframe(df_wip, width='stretch')
-        if not df_wip.empty:
-            st.download_button("📥 Download Log WIP", data=convert_df_to_csv(df_wip), file_name='log_wip.csv', mime='text/csv')
-
-    with tab4:
-        st.dataframe(df_baju, width='stretch')
-        if not df_baju.empty:
-            st.download_button("📥 Download Log Baju Jadi", data=convert_df_to_csv(df_baju), file_name='log_baju.csv', mime='text/csv')
-        st.write("---")
-        st.dataframe(df_jual, width='stretch')
-        if not df_jual.empty:
-            st.download_button("📥 Download Log Penjualan", data=convert_df_to_csv(df_jual), file_name='log_penjualan.csv', mime='text/csv')
+    else:
+        sisa_baju = pd.DataFrame(columns=['Barcode_Baju', 'Nama_Baju', 'Jumlah_Baju', 'Jumlah_Terjual', 'Sisa_Gudang (Pcs)'])
 
 # --- MENU 6: ADMIN (HAPUS DATA & SANDI) ---
 elif menu == "6. Admin (Hapus Data & Sandi)":
